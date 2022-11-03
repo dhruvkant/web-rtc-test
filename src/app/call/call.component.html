@@ -1,0 +1,9 @@
+Connect As:
+
+<label for="caller">Caller</label>
+<input id="caller" value="caller" [(ngModel)]="peerType" type="radio" />
+
+<label for="callee">Callee</label>
+<input id="callee" value="callee" [(ngModel)]="peerType" type="radio" />
+
+<button *ngIf="peerType" (click)="onConnect()">Connect</button>
