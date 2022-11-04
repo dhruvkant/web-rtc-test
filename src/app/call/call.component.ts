@@ -50,6 +50,9 @@ export class CallComponent implements OnInit, OnDestroy {
 
   private connectAsCallee(connection: RTCPeerConnection) {
     connection.onicecandidate = console.log;
+  }
+
+  private generateAnswer(connection: RTCPeerConnection) {
     connection.createAnswer().then((answer) => {
       connection
         .setLocalDescription(answer)
@@ -78,6 +81,7 @@ export class CallComponent implements OnInit, OnDestroy {
       console.log(message);
       if (message?.offer) {
         connection.setRemoteDescription(message.answer);
+        this.generateAnswer(connection);
       }
       if (message?.answer) {
         connection.setRemoteDescription(message.answer);
