@@ -12,13 +12,7 @@ export class CallComponent implements OnInit, OnDestroy {
     'wss://socketsbay.com/wss/v2/100/f9b5066412b5d042266ff9a20e60a0ae/'
   );
 
-  constructor() {
-    this.peerConnection.onsignalingstatechange = (event) => {
-      console.log(event);
-      const connection = event.target as RTCPeerConnection;
-      connection.close();
-    };
-  }
+  constructor() {}
 
   ngOnInit() {
     this.listenSignalChannel(this.peerConnection);
@@ -83,7 +77,7 @@ export class CallComponent implements OnInit, OnDestroy {
 
   private listenSignalChannel(connection: RTCPeerConnection) {
     this.signalingChannel.addEventListener('message', (message: any) => {
-      console.log('test', message.data);
+      console.log('test', JSON.parse(message));
       if (message?.offer) {
         connection.setRemoteDescription(message.answer);
         this.generateAnswer(connection);
