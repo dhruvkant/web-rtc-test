@@ -12,7 +12,13 @@ export class CallComponent implements OnInit, OnDestroy {
     'wss://socketsbay.com/wss/v2/100/f9b5066412b5d042266ff9a20e60a0ae/'
   );
 
-  constructor() {}
+  constructor() {
+    this.peerConnection.onsignalingstatechange = (event) => {
+      console.log(event);
+      const connection = event.target as RTCPeerConnection;
+      connection.close();
+    };
+  }
 
   ngOnInit() {
     this.listenSignalChannel(this.peerConnection);
@@ -37,27 +43,27 @@ export class CallComponent implements OnInit, OnDestroy {
   }
 
   private connectAsCaller(connection: RTCPeerConnection) {
-    connection.onicecandidate = console.log;
-    connection.createOffer().then((callerOffer) => {
+    connection.oniceconnectionstatechange = console.log;
+    connection.onsignalingstatechange = (event) => {
+      console.log(event);
+      connection.close();
+    };
+    connection.createOffer().then((offer) => {
       connection
-        .setLocalDescription(callerOffer)
-        .then((description) =>
-          this.signalingChannel.send(JSON.stringify({ offer: description }))
-        );
+        .setLocalDescription(offer)
+        .then(() => this.signalingChannel.send(JSON.stringify({ offer })));
     });
   }
 
   private connectAsCallee(connection: RTCPeerConnection) {
-    connection.onicecandidate = console.log;
+    // connection.onicecandidate = console.log;
   }
 
   private generateAnswer(connection: RTCPeerConnection) {
     connection.createAnswer().then((answer) => {
       connection
         .setLocalDescription(answer)
-        .then((description) =>
-          this.signalingChannel.send(JSON.stringify({ answer: description }))
-        );
+        .then(() => this.signalingChannel.send(JSON.stringify({ answer })));
     });
   }
 
@@ -77,7 +83,7 @@ export class CallComponent implements OnInit, OnDestroy {
 
   private listenSignalChannel(connection: RTCPeerConnection) {
     this.signalingChannel.addEventListener('message', (message: any) => {
-      console.log(message);
+      console.log('test', message.data);
       if (message?.offer) {
         connection.setRemoteDescription(message.answer);
         this.generateAnswer(connection);
@@ -88,8 +94,23 @@ export class CallComponent implements OnInit, OnDestroy {
     });
   }
 
-  ngOnDestroy() {
+  sendOffer() {
+    const connection = this.peerConnection;
+    connection.createOffer().then((callerOffer) => {
+      connection
+        .setLocalDescription(callerOffer)
+        .then(() =>
+          this.signalingChannel.send(JSON.stringify({ offer: callerOffer }))
+        );
+    });
+  }
+
+  close() {
     this.peerConnection?.close();
+  }
+
+  ngOnDestroy() {
+    this.close();
     this.signalingChannel?.close();
   }
 }

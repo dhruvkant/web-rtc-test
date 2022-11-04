@@ -16,5 +16,7 @@
         : 'Connect'
     }}
   </button>
+  <button hidden (click)="sendOffer()">Send Offer</button>
+  <button hidden (click)="close()">Close Connection</button>
   <div>Connection Status: {{ peerConnection.connectionState | titlecase }}</div>
 </div>
