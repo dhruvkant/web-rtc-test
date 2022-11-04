@@ -37,11 +37,6 @@ export class CallComponent implements OnInit, OnDestroy {
   }
 
   private connectAsCaller(connection: RTCPeerConnection) {
-    connection.oniceconnectionstatechange = console.log;
-    connection.onsignalingstatechange = (event) => {
-      console.log(event);
-      connection.close();
-    };
     connection.createOffer().then((offer) => {
       connection
         .setLocalDescription(offer)
@@ -77,13 +72,13 @@ export class CallComponent implements OnInit, OnDestroy {
 
   private listenSignalChannel(connection: RTCPeerConnection) {
     this.signalingChannel.addEventListener('message', (message: any) => {
-      console.log('test', JSON.parse(message));
-      if (message?.offer) {
-        connection.setRemoteDescription(message.answer);
+      const data = JSON.parse(message.data);
+      if (data?.offer) {
+        connection.setRemoteDescription(data.answer);
         this.generateAnswer(connection);
       }
-      if (message?.answer) {
-        connection.setRemoteDescription(message.answer);
+      if (data?.answer) {
+        connection.setRemoteDescription(data.answer);
       }
     });
   }
