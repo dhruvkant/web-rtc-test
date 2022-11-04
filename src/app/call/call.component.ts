@@ -6,8 +6,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
   styleUrls: ['./call.component.css'],
 })
 export class CallComponent implements OnInit, OnDestroy {
-  private peerConnection: RTCPeerConnection;
-
+  peerConnection = new RTCPeerConnection(this.getRTCConfiguration());
   peerType: string;
   signalingChannel = new WebSocket(
     'wss://socketsbay.com/wss/v2/100/f9b5066412b5d042266ff9a20e60a0ae/'
@@ -15,10 +14,12 @@ export class CallComponent implements OnInit, OnDestroy {
 
   constructor() {}
 
-  ngOnInit() {}
+  ngOnInit() {
+    this.listenSignalChannel(this.peerConnection);
+  }
 
   onConnect() {
-    this.checkPermissions().then(() => this.createConnection());
+    this.checkPermissions().then(() => this.connect());
   }
 
   private checkPermissions(): Promise<MediaStream> {
@@ -27,9 +28,7 @@ export class CallComponent implements OnInit, OnDestroy {
     });
   }
 
-  private createConnection() {
-    this.peerConnection = new RTCPeerConnection(this.getRTCConfiguration());
-    this.listenSignalChannel(this.peerConnection);
+  private connect() {
     if (this.peerType === 'caller') {
       this.connectAsCaller(this.peerConnection);
     } else {
