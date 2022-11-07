@@ -9,6 +9,7 @@ export class CallComponent implements OnInit, OnDestroy {
   peerConnection = new RTCPeerConnection(this.getRTCConfiguration());
   audioContext = new AudioContext();
   peerType: string;
+  localStream: MediaStream;
   signalingChannel = new WebSocket(
     'wss://socketsbay.com/wss/v2/100/f9b5066412b5d042266ff9a20e60a0ae/'
   );
@@ -19,14 +20,16 @@ export class CallComponent implements OnInit, OnDestroy {
     this.listenSignalChannel(this.peerConnection);
   }
 
-  onConnect() {
-    this.checkPermissions().then((stream) => {
-      this.peerConnection.addTrack(stream.getAudioTracks()[0], stream);
-      this.connect();
-    });
+  async onConnect() {
+    this.localStream = await this.getUserMedia();
+    this.peerConnection.addTrack(
+      this.localStream.getAudioTracks()[0],
+      this.localStream
+    );
+    this.connect();
   }
 
-  private checkPermissions(): Promise<MediaStream> {
+  private getUserMedia(): Promise<MediaStream> {
     return navigator.mediaDevices.getUserMedia({
       audio: true,
     });
@@ -52,14 +55,12 @@ export class CallComponent implements OnInit, OnDestroy {
     // connection.onicecandidate = console.log;
     connection.addEventListener('track', (event: RTCTrackEvent) => {
       console.log('received event', event);
-      const source = this.audioContext.createMediaStreamSource(
-        event.streams[0]
-      );
-      source.connect(this.audioContext.destination);
-      const remoteVideo: HTMLVideoElement =
-        document.querySelector('#videoElement');
       const [remoteStream] = event.streams;
-      remoteVideo.srcObject = remoteStream;
+      const source = this.audioContext.createMediaStreamSource(remoteStream);
+      source.connect(this.audioContext.destination);
+      // const remoteVideo: HTMLVideoElement =
+      //   document.querySelector('#videoElement');
+      // remoteVideo.srcObject = remoteStream;
     });
   }
 
