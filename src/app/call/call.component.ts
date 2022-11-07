@@ -56,6 +56,10 @@ export class CallComponent implements OnInit, OnDestroy {
         event.streams[0]
       );
       source.connect(this.audioContext.destination);
+      const remoteVideo: HTMLVideoElement =
+        document.querySelector('#videoElement');
+      const [remoteStream] = event.streams;
+      remoteVideo.srcObject = remoteStream;
     });
   }
 
