@@ -16,10 +16,16 @@ export class CallComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.listenSignalChannel(this.peerConnection);
+    this.peerConnection.addEventListener('track', (track) => {
+      console.log('track from connection', track);
+    });
   }
 
   onConnect() {
-    this.checkPermissions().then(() => this.connect());
+    this.checkPermissions().then((stream) => {
+      this.peerConnection.addTrack(stream.getAudioTracks()[0]);
+      this.connect();
+    });
   }
 
   private checkPermissions(): Promise<MediaStream> {
@@ -74,7 +80,7 @@ export class CallComponent implements OnInit, OnDestroy {
     this.signalingChannel.addEventListener('message', (message: any) => {
       const data = JSON.parse(message.data);
       if (data?.offer) {
-        connection.setRemoteDescription(data.answer);
+        connection.setRemoteDescription(data.offer);
         this.generateAnswer(connection);
       }
       if (data?.answer) {
