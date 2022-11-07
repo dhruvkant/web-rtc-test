@@ -7,6 +7,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 })
 export class CallComponent implements OnInit, OnDestroy {
   peerConnection = new RTCPeerConnection(this.getRTCConfiguration());
+  audioContext = new AudioContext();
   peerType: string;
   signalingChannel = new WebSocket(
     'wss://socketsbay.com/wss/v2/100/f9b5066412b5d042266ff9a20e60a0ae/'
@@ -16,14 +17,11 @@ export class CallComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.listenSignalChannel(this.peerConnection);
-    this.peerConnection.addEventListener('track', (track) => {
-      console.log('track from connection', track);
-    });
   }
 
   onConnect() {
     this.checkPermissions().then((stream) => {
-      this.peerConnection.addTrack(stream.getAudioTracks()[0]);
+      this.peerConnection.addTrack(stream.getAudioTracks()[0], stream);
       this.connect();
     });
   }
@@ -52,6 +50,13 @@ export class CallComponent implements OnInit, OnDestroy {
 
   private connectAsCallee(connection: RTCPeerConnection) {
     // connection.onicecandidate = console.log;
+    connection.addEventListener('track', (event: RTCTrackEvent) => {
+      console.log('received event', event);
+      const source = this.audioContext.createMediaStreamSource(
+        event.streams[0]
+      );
+      source.connect(this.audioContext.destination);
+    });
   }
 
   private generateAnswer(connection: RTCPeerConnection) {
