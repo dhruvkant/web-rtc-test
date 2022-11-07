@@ -22,10 +22,9 @@ export class CallComponent implements OnInit, OnDestroy {
 
   async onConnect() {
     this.localStream = await this.getUserMedia();
-    this.peerConnection.addTrack(
-      this.localStream.getAudioTracks()[0],
-      this.localStream
-    );
+    this.localStream.getTracks().forEach((track) => {
+      this.peerConnection.addTrack(track, this.localStream);
+    });
     this.connect();
   }
 
@@ -56,11 +55,9 @@ export class CallComponent implements OnInit, OnDestroy {
     connection.addEventListener('track', (event: RTCTrackEvent) => {
       console.log('received event', event);
       const [remoteStream] = event.streams;
-      const source = this.audioContext.createMediaStreamSource(remoteStream);
-      source.connect(this.audioContext.destination);
-      // const remoteVideo: HTMLVideoElement =
-      //   document.querySelector('#videoElement');
-      // remoteVideo.srcObject = remoteStream;
+      const remoteAudio: HTMLAudioElement =
+        document.querySelector('#audioElement');
+      remoteAudio.srcObject = remoteStream;
     });
   }
 
@@ -96,17 +93,6 @@ export class CallComponent implements OnInit, OnDestroy {
       if (data?.answer) {
         connection.setRemoteDescription(data.answer);
       }
-    });
-  }
-
-  sendOffer() {
-    const connection = this.peerConnection;
-    connection.createOffer().then((callerOffer) => {
-      connection
-        .setLocalDescription(callerOffer)
-        .then(() =>
-          this.signalingChannel.send(JSON.stringify({ offer: callerOffer }))
-        );
     });
   }
 

@@ -8,19 +8,18 @@
   <input id="callee" value="callee" [(ngModel)]="peerType" type="radio" />
 </p>
 
-<div>
-  <button *ngIf="peerType && peerConnection" (click)="onConnect()">
+<div *ngIf="peerType && peerConnection">
+  <button (click)="onConnect()">
     {{
       ['connected', 'connecting'].includes(peerConnection.connectionState)
         ? 'Disconnect'
         : 'Connect'
     }}
   </button>
-  <button hidden (click)="sendOffer()">Send Offer</button>
   <button hidden (click)="close()">Close Connection</button>
   <div>Connection Status: {{ peerConnection.connectionState | titlecase }}</div>
 </div>
 
 <div>
-  <video id="videoElement" width="320" height="240" controls></video>
+  <audio id="audioElement" autoplay controls [attr.muted]="peerType == 'callee'"></audio>
 </div>
