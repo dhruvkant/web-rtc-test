@@ -30,6 +30,7 @@ export class CallComponent implements OnInit, OnDestroy {
   private getUserMedia(): Promise<MediaStream> {
     return navigator.mediaDevices.getUserMedia({
       audio: true,
+      video: true,
     });
   }
 
