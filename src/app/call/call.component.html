@@ -14,18 +14,6 @@
   <button (click)="onEnd()">End</button>
 </ng-container>
 
-<div *ngIf="peerType && peerConnection">
-  <button (click)="onConnect()">
-    {{
-      ['connected', 'connecting'].includes(peerConnection.connectionState)
-        ? 'Disconnect'
-        : 'Connect'
-    }}
-  </button>
-  <button hidden (click)="close()">Close Connection</button>
-  <div>Connection Status: {{ peerConnection.connectionState | titlecase }}</div>
-</div>
-
 <div>
   <audio autoplay controls #audioElement></audio>
 </div>

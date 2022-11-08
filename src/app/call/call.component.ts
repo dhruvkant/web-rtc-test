@@ -29,14 +29,6 @@ export class CallComponent implements OnInit, OnDestroy {
     this.listenSignalChannel(this.peerConnection);
   }
 
-  async onConnect() {
-    this.localStream = await this.getUserMedia();
-    this.localStream.getTracks().forEach((track) => {
-      this.peerConnection.addTrack(track, this.localStream);
-    });
-    this.connect();
-  }
-
   private getUserMedia(): Promise<MediaStream> {
     return navigator.mediaDevices.getUserMedia({
       audio: true,
@@ -52,37 +44,54 @@ export class CallComponent implements OnInit, OnDestroy {
   }
 
   private connectAsCaller(connection: RTCPeerConnection) {
-    connection.addEventListener('track', (event: RTCTrackEvent) => {
-      console.log('received at caller', event);
-      const [remoteStream] = event.streams;
-      const remoteAudio: HTMLAudioElement =
-        document.querySelector('#audioElement');
-      remoteAudio.srcObject = remoteStream;
-    });
-    connection.createOffer().then((offer) => {
-      connection
-        .setLocalDescription(offer)
-        .then(() => this.signalingChannel.send(JSON.stringify({ offer })));
-    });
+    this.getOffer(connection).then((offer) =>
+      this.signalingChannel.send(
+        JSON.stringify({
+          type: 'SDP_OFFER',
+          value: offer,
+        })
+      )
+    );
   }
 
   private connectAsCallee(connection: RTCPeerConnection) {
-    // connection.onicecandidate = console.log;
-    connection.addEventListener('track', (event: RTCTrackEvent) => {
-      console.log('received at callee', event);
-      const [remoteStream] = event.streams;
-      const remoteAudio: HTMLAudioElement =
-        document.querySelector('#audioElement');
-      remoteAudio.srcObject = remoteStream;
-    });
+    this.getAnswer(connection).then((answer) =>
+      this.signalingChannel.send(
+        JSON.stringify({
+          type: 'SDP_ANSWER',
+          value: answer,
+        })
+      )
+    );
   }
 
-  private generateAnswer(connection: RTCPeerConnection) {
-    connection.createAnswer().then((answer) => {
-      connection
-        .setLocalDescription(answer)
-        .then(() => this.signalingChannel.send(JSON.stringify({ answer })));
-    });
+  private async getOffer(
+    connection: RTCPeerConnection
+  ): Promise<RTCSessionDescriptionInit> {
+    if (connection.pendingLocalDescription) {
+      const offer = await connection.createOffer();
+      connection.setLocalDescription(offer);
+      return offer;
+    } else {
+      return connection.localDescription;
+    }
+  }
+
+  private async getAnswer(
+    connection: RTCPeerConnection
+  ): Promise<RTCSessionDescriptionInit> {
+    if (connection.pendingLocalDescription) {
+      try {
+        const answer = await connection.createAnswer();
+        connection.setLocalDescription(answer);
+        return answer;
+      } catch (e) {
+        this.signalingChannel.send(JSON.stringify({ type: 'REQUEST_OFFER' }));
+        return;
+      }
+    } else {
+      return connection.localDescription;
+    }
   }
 
   private getRTCConfiguration(): RTCConfiguration {
@@ -101,13 +110,36 @@ export class CallComponent implements OnInit, OnDestroy {
 
   private listenSignalChannel(connection: RTCPeerConnection) {
     this.signalingChannel.addEventListener('message', (message: any) => {
-      const data = JSON.parse(message.data);
-      if (data?.offer) {
-        connection.setRemoteDescription(data.offer);
-        this.generateAnswer(connection);
-      }
-      if (data?.answer) {
-        connection.setRemoteDescription(data.answer);
+      const messageResponse = JSON.parse(message.data);
+      console.log('signal received => ', messageResponse?.type);
+      switch (messageResponse?.type) {
+        case 'SDP_OFFER':
+          connection.setRemoteDescription(messageResponse?.value);
+          this.getAnswer(connection);
+          break;
+        case 'SDP_ANSWER':
+          connection.setRemoteDescription(messageResponse?.value);
+          break;
+        case 'REQUEST_OFFER':
+          this.getOffer(connection).then((offer) =>
+            this.signalingChannel.send(
+              JSON.stringify({
+                type: 'SDP_OFFER',
+                value: offer,
+              })
+            )
+          );
+          break;
+        case 'REQUEST_ANSWER':
+          this.getAnswer(connection).then((answer) =>
+            this.signalingChannel.send(
+              JSON.stringify({
+                type: 'SDP_ANSWER',
+                value: answer,
+              })
+            )
+          );
+          break;
       }
     });
   }
@@ -120,20 +152,26 @@ export class CallComponent implements OnInit, OnDestroy {
 
   onStart() {
     this.peerConnection = new RTCPeerConnection(this.getRTCConfiguration());
+    this.listenToTrackEvent(this.peerConnection);
+    this.connect();
   }
 
   async onCall() {
     this.localStream = await this.getUserMedia();
+    this.localStream
+      .getTracks()
+      .forEach((track) =>
+        this.peerConnection.addTrack(track, this.localStream)
+      );
   }
 
   private listenToTrackEvent(connection: RTCPeerConnection) {
     this.trackEventListener = connection.addEventListener(
       'track',
       (event: RTCTrackEvent) => {
-        console.log('received at callee', event);
         const [remoteStream] = event.streams;
-        // const remoteAudio: HTMLAudioElement = this.audioElement.nativeElement;
-        // remoteAudio.srcObject = remoteStream;
+        const remoteAudio: HTMLAudioElement = this.audioElement.nativeElement;
+        remoteAudio.srcObject = remoteStream;
       }
     );
   }
