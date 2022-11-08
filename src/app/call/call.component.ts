@@ -43,6 +43,13 @@ export class CallComponent implements OnInit, OnDestroy {
   }
 
   private connectAsCaller(connection: RTCPeerConnection) {
+    connection.addEventListener('track', (event: RTCTrackEvent) => {
+      console.log('received at caller', event);
+      const [remoteStream] = event.streams;
+      const remoteAudio: HTMLAudioElement =
+        document.querySelector('#audioElement');
+      remoteAudio.srcObject = remoteStream;
+    });
     connection.createOffer().then((offer) => {
       connection
         .setLocalDescription(offer)
@@ -53,7 +60,7 @@ export class CallComponent implements OnInit, OnDestroy {
   private connectAsCallee(connection: RTCPeerConnection) {
     // connection.onicecandidate = console.log;
     connection.addEventListener('track', (event: RTCTrackEvent) => {
-      console.log('received event', event);
+      console.log('received at callee', event);
       const [remoteStream] = event.streams;
       const remoteAudio: HTMLAudioElement =
         document.querySelector('#audioElement');
