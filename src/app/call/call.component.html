@@ -8,6 +8,12 @@
   <input id="callee" value="callee" [(ngModel)]="peerType" type="radio" />
 </p>
 
+<ng-container *ngIf="peerType">
+  <button (click)="onStart()">Start</button>
+  <button (click)="onCall()">Call</button>
+  <button (click)="onEnd()">End</button>
+</ng-container>
+
 <div *ngIf="peerType && peerConnection">
   <button (click)="onConnect()">
     {{
@@ -21,5 +27,5 @@
 </div>
 
 <div>
-  <audio id="audioElement" autoplay controls [attr.muted]="peerType == 'callee'"></audio>
+  <audio autoplay controls #audioElement></audio>
 </div>

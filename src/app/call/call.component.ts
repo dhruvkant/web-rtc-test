@@ -1,4 +1,10 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+} from '@angular/core';
 
 @Component({
   selector: 'app-call',
@@ -6,13 +12,16 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
   styleUrls: ['./call.component.css'],
 })
 export class CallComponent implements OnInit, OnDestroy {
-  peerConnection = new RTCPeerConnection(this.getRTCConfiguration());
-  audioContext = new AudioContext();
+  peerConnection: RTCPeerConnection;
   peerType: string;
   localStream: MediaStream;
   signalingChannel = new WebSocket(
     'wss://socketsbay.com/wss/v2/100/f9b5066412b5d042266ff9a20e60a0ae/'
   );
+  private trackEventListener;
+
+  @ViewChild('audioElement', { read: ElementRef })
+  private audioElement: ElementRef;
 
   constructor() {}
 
@@ -104,7 +113,33 @@ export class CallComponent implements OnInit, OnDestroy {
   }
 
   close() {
+    this.peerConnection?.removeEventListener('track', this.trackEventListener);
     this.peerConnection?.close();
+    this.peerConnection = null;
+  }
+
+  onStart() {
+    this.peerConnection = new RTCPeerConnection(this.getRTCConfiguration());
+  }
+
+  async onCall() {
+    this.localStream = await this.getUserMedia();
+  }
+
+  private listenToTrackEvent(connection: RTCPeerConnection) {
+    this.trackEventListener = connection.addEventListener(
+      'track',
+      (event: RTCTrackEvent) => {
+        console.log('received at callee', event);
+        const [remoteStream] = event.streams;
+        // const remoteAudio: HTMLAudioElement = this.audioElement.nativeElement;
+        // remoteAudio.srcObject = remoteStream;
+      }
+    );
+  }
+
+  onEnd() {
+    this.close();
   }
 
   ngOnDestroy() {
