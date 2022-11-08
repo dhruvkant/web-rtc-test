@@ -54,17 +54,16 @@ export class CallComponent implements OnInit, OnDestroy {
 
   private connectAsCallee(connection: RTCPeerConnection): void {
     this.getAnswer(connection)
-      .then(
-        (answer) =>
-          this.signalingChannel.send(
-            JSON.stringify({
-              type: 'SDP_ANSWER',
-              value: answer,
-            })
-          ),
-        (error) => {}
+      .then((answer) =>
+        this.signalingChannel.send(
+          JSON.stringify({
+            type: 'SDP_ANSWER',
+            value: answer,
+          })
+        )
       )
       .catch(() => {
+        console.log('got error');
         this.signalingChannel.send(JSON.stringify({ type: 'REQUEST_OFFER' }));
       });
   }
@@ -87,8 +86,10 @@ export class CallComponent implements OnInit, OnDestroy {
     if (connection.localDescription) {
       return connection.localDescription;
     } else {
+      console.log('generating answer');
       const answer = await connection.createAnswer();
       connection.setLocalDescription(answer);
+      console.log('answer returned');
       return answer;
     }
   }
@@ -114,7 +115,14 @@ export class CallComponent implements OnInit, OnDestroy {
       switch (messageResponse?.type) {
         case 'SDP_OFFER':
           connection.setRemoteDescription(messageResponse?.value);
-          this.getAnswer(connection);
+          this.getAnswer(connection).then((answer) =>
+            this.signalingChannel.send(
+              JSON.stringify({
+                type: 'SDP_ANSWER',
+                value: answer,
+              })
+            )
+          );
           break;
         case 'SDP_ANSWER':
           connection.setRemoteDescription(messageResponse?.value);
