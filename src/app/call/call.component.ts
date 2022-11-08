@@ -86,10 +86,8 @@ export class CallComponent implements OnInit, OnDestroy {
     if (connection.localDescription) {
       return connection.localDescription;
     } else {
-      console.log('generating answer');
       const answer = await connection.createAnswer();
       connection.setLocalDescription(answer);
-      console.log('answer returned');
       return answer;
     }
   }
@@ -157,14 +155,15 @@ export class CallComponent implements OnInit, OnDestroy {
     this.peerConnection = null;
   }
 
-  onStart() {
+  async onStart() {
     this.peerConnection = new RTCPeerConnection(this.getRTCConfiguration());
     this.listenSignalChannel(this.peerConnection);
+    await this.getLocalStream();
     this.listenToTrackEvent(this.peerConnection);
     this.connect();
   }
 
-  async onCall() {
+  async getLocalStream() {
     this.localStream = await this.getUserMedia();
     this.localStream
       .getTracks()
