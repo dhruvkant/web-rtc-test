@@ -52,7 +52,7 @@ export class CallComponent implements OnInit, OnDestroy {
     );
   }
 
-  private connectAsCallee(connection: RTCPeerConnection) {
+  private connectAsCallee(connection: RTCPeerConnection): void {
     this.getAnswer(connection)
       .then(
         (answer) =>
@@ -72,24 +72,24 @@ export class CallComponent implements OnInit, OnDestroy {
   private async getOffer(
     connection: RTCPeerConnection
   ): Promise<RTCSessionDescriptionInit> {
-    if (connection.pendingLocalDescription) {
+    if (connection.localDescription) {
+      return connection.localDescription;
+    } else {
       const offer = await connection.createOffer();
       connection.setLocalDescription(offer);
       return offer;
-    } else {
-      return connection.localDescription;
     }
   }
 
   private async getAnswer(
     connection: RTCPeerConnection
   ): Promise<RTCSessionDescriptionInit> {
-    if (connection.pendingLocalDescription) {
+    if (connection.localDescription) {
+      return connection.localDescription;
+    } else {
       const answer = await connection.createAnswer();
       connection.setLocalDescription(answer);
       return answer;
-    } else {
-      return connection.localDescription;
     }
   }
 
