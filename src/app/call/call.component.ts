@@ -25,9 +25,7 @@ export class CallComponent implements OnInit, OnDestroy {
 
   constructor() {}
 
-  ngOnInit() {
-    this.listenSignalChannel(this.peerConnection);
-  }
+  ngOnInit() {}
 
   private getUserMedia(): Promise<MediaStream> {
     return navigator.mediaDevices.getUserMedia({
@@ -55,14 +53,20 @@ export class CallComponent implements OnInit, OnDestroy {
   }
 
   private connectAsCallee(connection: RTCPeerConnection) {
-    this.getAnswer(connection).then((answer) =>
-      this.signalingChannel.send(
-        JSON.stringify({
-          type: 'SDP_ANSWER',
-          value: answer,
-        })
+    this.getAnswer(connection)
+      .then(
+        (answer) =>
+          this.signalingChannel.send(
+            JSON.stringify({
+              type: 'SDP_ANSWER',
+              value: answer,
+            })
+          ),
+        (error) => {}
       )
-    );
+      .catch(() => {
+        this.signalingChannel.send(JSON.stringify({ type: 'REQUEST_OFFER' }));
+      });
   }
 
   private async getOffer(
@@ -81,14 +85,9 @@ export class CallComponent implements OnInit, OnDestroy {
     connection: RTCPeerConnection
   ): Promise<RTCSessionDescriptionInit> {
     if (connection.pendingLocalDescription) {
-      try {
-        const answer = await connection.createAnswer();
-        connection.setLocalDescription(answer);
-        return answer;
-      } catch (e) {
-        this.signalingChannel.send(JSON.stringify({ type: 'REQUEST_OFFER' }));
-        return;
-      }
+      const answer = await connection.createAnswer();
+      connection.setLocalDescription(answer);
+      return answer;
     } else {
       return connection.localDescription;
     }
@@ -152,6 +151,7 @@ export class CallComponent implements OnInit, OnDestroy {
 
   onStart() {
     this.peerConnection = new RTCPeerConnection(this.getRTCConfiguration());
+    this.listenSignalChannel(this.peerConnection);
     this.listenToTrackEvent(this.peerConnection);
     this.connect();
   }
